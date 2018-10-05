@@ -105,29 +105,47 @@ class AlgoStrategy(gamelib.AlgoCore):
             game_state.attempt_spawn(PING, self.troopDeploymentCoords)
 
     def buildWalls(self, game_state):    
-        firewall_locations_part1 = [[0, 13], [1, 13], [2, 13], [3, 13], [4, 13], [5, 13], [6, 13], 
-                                    [7, 13], [8, 13], [9, 13], [10, 13], [11, 13], [12, 13], [13, 13],
-                                    [14, 13], [15, 13], [16, 13], [17, 13], [18, 13], [19, 13], [20, 13], [21, 13]]
-        for location in firewall_locations_part1:
+        # so far I don't like this plan
+        lighthouse_far_left = [2, 12]
+        lighthouse_far_left_breakers = [[1, 13], [3, 12]]
+        lighthouse_far_right = [25, 12]
+        lighthouse_far_right_breakers = [[26, 13], [24, 12]]
+        lighthouse_mid_left = [9, 9]
+        lighthouse_mid_left_breakers = [[8, 10], [10, 9]]
+        lighthouse_mid_right = [18, 9]
+        lighthouse_mid_right_breakers = [[19, 10], [17, 9]]
+        artillery = [[0, 13], [27, 13]]
+        # we try to place artillery first, but it's good to close off with a will if we can't afford firepower
+        walls = [[0, 13], [27, 13], [4, 11], [5, 10], [23, 11], [22, 10], [6, 10], [21, 10], [7, 10], [20, 10]]
+
+        # lighthouse_far_left
+        game_state.can_spawn(DESTRUCTOR, lighthouse_far_left)
+        for location in lighthouse_far_left_breakers:
             if game_state.can_spawn(FILTER, location):
                 game_state.attempt_spawn(FILTER, location)
         
-        tower_locations_part1 = [[24, 12], [3, 12], [26, 12]]
-        for location in tower_locations_part1:
-            if game_state.can_spawn(DESTRUCTOR, location):
-                game_state.attempt_spawn(DESTRUCTOR, location)
-
-        firewall_locations_part2 = [[22, 13], [23, 13]]
-        for location in firewall_locations_part2:
+        # lighthouse_far_right
+        game_state.can_spawn(DESTRUCTOR, lighthouse_far_right)
+        for location in lighthouse_far_right_breakers:
             if game_state.can_spawn(FILTER, location):
                 game_state.attempt_spawn(FILTER, location)
 
-        tower_locations_part2 = [[23, 12], [6, 12], [3, 12], [9, 12], [12, 12],
-                                 [15, 12], [18, 12], [20, 12], [1, 12], [8, 12]]
-        for location in tower_locations_part2:
-            if game_state.can_spawn(DESTRUCTOR, location):
-                game_state.attempt_spawn(DESTRUCTOR, location)
+        # lighthouse_mid_left
+        game_state.can_spawn(DESTRUCTOR, lighthouse_mid_left)
+        for location in lighthouse_mid_left_breakers:
+            if game_state.can_spawn(FILTER, location):
+                game_state.attempt_spawn(FILTER, location)
 
+        # lighthouse_mid_right
+        game_state.can_spawn(DESTRUCTOR, lighthouse_mid_right)
+        for location in lighthouse_mid_right_breakers:
+            if game_state.can_spawn(FILTER, location):
+                game_state.attempt_spawn(FILTER, location)
+
+        # walls
+        for location in walls:
+            if game_state.can_spawn(FILTER, location):
+                game_state.attempt_spawn(FILTER, location)
     
 
 if __name__ == "__main__":
