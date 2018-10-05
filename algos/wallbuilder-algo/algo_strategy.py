@@ -57,11 +57,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         game engine.
         """
         game_state = gamelib.GameState(self.config, turn_state)
+        
         #game_state.suppress_warnings(True)  #Uncomment this line to suppress warnings.
 
-        #always try to build walls
-        self.buildWalls(game_state)
-
+        # consider an attack successful if it did a large amount of structure damage (>5)
         if self.attackedLastTurn and game_state.enemy_health == self.lastEnemyHealth:
             #our last attack was not successful! change strategies
             self.useShockTroops = not self.useShockTroops
@@ -75,12 +74,24 @@ class AlgoStrategy(gamelib.AlgoCore):
         #if shock troops aren't successful, go with the bruisers
         if game_state.get_resource(game_state.BITS) >= 12:
             self.attackedLastTurn = True
+            while (len(gamelib.advanced_game_state.AdvancedGameState.get_attackers(game_state, self.troopDeploymentCoords, 0)) > 0):
+                self.moveDeploymentAway()
+
             if self.useShockTroops:
                 self.deployShockTroops(game_state)
             else:
                 self.deployBruisers(game_state)
 
+        #always try to build walls
+        # consider reinforcing weak areas?
+        # may need to retreat from front-line
+        self.buildWalls(game_state)
+
         game_state.submit_turn()
+
+    def moveDeploymentAway(self):
+        self.troopDeploymentCoords[0] += 1
+        self.troopDeploymentCoords[1] -= 1
 
     def deployBruisers(self, game_state):
         gamelib.debug_write('Sending Bruisers!')
@@ -102,7 +113,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.can_spawn(FILTER, location):
                 game_state.attempt_spawn(FILTER, location)
         
-        tower_locations_part1 = [[24, 12], [21, 12], [26, 12]]
+        tower_locations_part1 = [[24, 12], [3, 12], [26, 12]]
         for location in tower_locations_part1:
             if game_state.can_spawn(DESTRUCTOR, location):
                 game_state.attempt_spawn(DESTRUCTOR, location)
@@ -112,7 +123,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.can_spawn(FILTER, location):
                 game_state.attempt_spawn(FILTER, location)
 
-        tower_locations_part2 = [[23, 12], [3, 12], [6, 12], [9, 12], [12, 12],
+        tower_locations_part2 = [[23, 12], [6, 12], [3, 12], [9, 12], [12, 12],
                                  [15, 12], [18, 12], [20, 12], [1, 12], [8, 12]]
         for location in tower_locations_part2:
             if game_state.can_spawn(DESTRUCTOR, location):
