@@ -112,7 +112,8 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.can_spawn(FILTER, location):
                 game_state.attempt_spawn(FILTER, location)
 
-        tower_locations_part2 = [[23, 12], [22, 12], [20, 12], [19, 12], [18, 12]]
+        tower_locations_part2 = [[23, 12], [3, 12], [6, 12], [9, 12], [12, 12],
+                                 [15, 12], [18, 12], [20, 12], [1, 12], [8, 12]]
         for location in tower_locations_part2:
             if game_state.can_spawn(DESTRUCTOR, location):
                 game_state.attempt_spawn(DESTRUCTOR, location)
