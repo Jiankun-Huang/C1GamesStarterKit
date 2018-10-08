@@ -1,5 +1,5 @@
 $defaultAlgo="$pwd\algos\starter-algo"
-$newAlgo="$pwd\algos\wallbuilder-algo"
+$newAlgo="$pwd\algos\corner-algo"
 if (!$args[0]) { $algo1="$newAlgo\run.ps1" } else { $algo1="$($args[0])\run.ps1"}
 if (!$args[1]) { $algo2="$defaultAlgo\run.ps1" } else { $algo2="$($args[1])\run.ps1"}
 
