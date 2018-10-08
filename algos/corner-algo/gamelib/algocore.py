@@ -1,4 +1,5 @@
 import json
+import gamelib
 
 from .game_state import GameState
 from .util import get_command, debug_write, BANNER_TEXT, send_command
@@ -63,6 +64,8 @@ class AlgoCore(object):
                     """
                     If stateType == 1, this game_state_string string represents the results of an action phase
                     """
+                    #this writes a lot!
+                    #gamelib.debug_write("SS:{}",game_state_string)
                     continue
                 elif stateType == 2:
                     """

@@ -118,6 +118,9 @@ class AlgoStrategy(gamelib.AlgoCore):
         gamelib.debug_write('Sending Troops!')
         while game_state.can_spawn(PING, self.troopDeploymentCoord):
             game_state.attempt_spawn(PING, self.troopDeploymentCoord)
+        # it's bad to prioritize this over other walls, this should be moved!
+        if (game_state.can_spawn(ENCRYPTOR, self.encrypt_right_leg_coord)):
+                game_state.attempt_spawn(ENCRYPTOR, self.encrypt_right_leg_coord)
 
     def markForRefund(self, game_state):
         # if any firewalls have less than half stability, mark for removal

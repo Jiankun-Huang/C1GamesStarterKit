@@ -1,6 +1,7 @@
 import math
 import json
 import warnings
+import gamelib
 
 from .navigation import ShortestPathFinder
 from .util import send_command, debug_write
@@ -47,6 +48,9 @@ class GameState:
         """
         self.serialized_string = serialized_string
         self.config = config
+        
+        # this writes a little since
+        #gamelib.debug_write('SS::{}', serialized_string)
 
         global FILTER, ENCRYPTOR, DESTRUCTOR, PING, EMP, SCRAMBLER, REMOVE, FIREWALL_TYPES, ALL_UNITS, UNIT_TYPE_TO_INDEX
         UNIT_TYPE_TO_INDEX = {}
