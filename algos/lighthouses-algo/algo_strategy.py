@@ -105,7 +105,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             game_state.attempt_spawn(PING, self.troopDeploymentCoords)
 
     def buildWalls(self, game_state):    
-        # so far I don't like this plan
+        # so far I don't like this plan, make it like the Hudson bot! But switchable
         lighthouse_far_left = [2, 12]
         lighthouse_far_left_breakers = [[1, 13], [3, 12]]
         lighthouse_far_right = [25, 12]
