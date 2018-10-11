@@ -57,95 +57,34 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         game_state = gamelib.GameState(self.config, turn_state)
         
-        #game_state.suppress_warnings(True)  #Uncomment this line to suppress warnings.
-
-        # consider an attack successful if it did a large amount of structure damage (>5)
-        if self.attackedLastTurn and game_state.enemy_health == self.lastEnemyHealth:
-            #our last attack was not successful! change strategies
-            self.useShockTroops = not self.useShockTroops
-            gamelib.debug_write('our last attack was not successful! Changing strategies.')
-            self.attackedLastTurn = False
-        elif self.attackedLastTurn:
-            gamelib.debug_write('Our last attacked worked!  We did {} damage'.format(self.lastEnemyHealth - game_state.enemy_health))
-            self.lastEnemyHealth = game_state.enemy_health
-            self.attackedLastTurn = False
-
-        #if shock troops aren't successful, go with the bruisers
-        if game_state.get_resource(game_state.BITS) >= 12:
-            self.attackedLastTurn = True
-            #while (len(gamelib.advanced_game_state.AdvancedGameState.get_attackers(game_state, self.troopDeploymentCoords, 0)) > 0):
-            #    self.moveDeploymentAway()
-
-            if self.useShockTroops:
-                self.deployShockTroops(game_state)
-            else:
-                self.deployBruisers(game_state)
-
-        #always try to build walls
-        # consider reinforcing weak areas?
-        # may need to retreat walls from front-line
-        self.buildWalls(game_state)
-
+        if game_state.turn_number < 6:
+            self.buildLeftTowers(game_state)
+            self.buildRightTowers(game_state)
+        else:
+            self.sellRightTowers(game_state)
+        
         game_state.submit_turn()
 
-    def moveDeploymentAway(self):
-        self.troopDeploymentCoords[0] += 1
-        self.troopDeploymentCoords[1] -= 1
+    def sellRightTowers(self, game_state):
+        coordsToRemove = [[25, 13], [26, 13], [27, 13], [26, 12]]
+        for location in coordsToRemove:
+            game_state.attempt_remove(location)
 
-    def deployBruisers(self, game_state):
-        gamelib.debug_write('Sending Bruisers!')
-        for x in range(3):
-            game_state.attempt_spawn(EMP, self.troopDeploymentCoords)
-        while game_state.can_spawn(PING, [3, 10]):
-            game_state.attempt_spawn(SCRAMBLER, self.troopDeploymentCoords)
+    def buildRightTowers(self, game_state):
+        # right-side towers
+        right_side_towers = [[25, 13], [26, 13], [27, 13], [26, 12]]
 
-    def deployShockTroops(self, game_state):
-        gamelib.debug_write('Sending Shock Troops!')
-        while game_state.can_spawn(PING, self.troopDeploymentCoords):
-            game_state.attempt_spawn(PING, self.troopDeploymentCoords)
+        for location in right_side_towers:
+            if game_state.can_spawn(DESTRUCTOR, location):
+                game_state.attempt_spawn(DESTRUCTOR, location)
 
-    def buildWalls(self, game_state):    
-        # so far I don't like this plan, make it like the Hudson bot! But switchable
-        lighthouse_far_left = [2, 12]
-        lighthouse_far_left_breakers = [[1, 13], [3, 12]]
-        lighthouse_far_right = [25, 12]
-        lighthouse_far_right_breakers = [[26, 13], [24, 12]]
-        lighthouse_mid_left = [9, 9]
-        lighthouse_mid_left_breakers = [[8, 10], [10, 9]]
-        lighthouse_mid_right = [18, 9]
-        lighthouse_mid_right_breakers = [[19, 10], [17, 9]]
-        artillery = [[0, 13], [27, 13]]
-        # we try to place artillery first, but it's good to close off with a will if we can't afford firepower
-        walls = [[0, 13], [27, 13], [4, 11], [5, 10], [23, 11], [22, 10], [6, 10], [21, 10], [7, 10], [20, 10]]
-
-        # lighthouse_far_left
-        game_state.can_spawn(DESTRUCTOR, lighthouse_far_left)
-        for location in lighthouse_far_left_breakers:
-            if game_state.can_spawn(FILTER, location):
-                game_state.attempt_spawn(FILTER, location)
+    def buildLeftTowers(self, game_state):    
+        # left-side towers
+        left_side_towers = [[0, 13], [1, 13], [2, 13], [1, 12]]
         
-        # lighthouse_far_right
-        game_state.can_spawn(DESTRUCTOR, lighthouse_far_right)
-        for location in lighthouse_far_right_breakers:
-            if game_state.can_spawn(FILTER, location):
-                game_state.attempt_spawn(FILTER, location)
-
-        # lighthouse_mid_left
-        game_state.can_spawn(DESTRUCTOR, lighthouse_mid_left)
-        for location in lighthouse_mid_left_breakers:
-            if game_state.can_spawn(FILTER, location):
-                game_state.attempt_spawn(FILTER, location)
-
-        # lighthouse_mid_right
-        game_state.can_spawn(DESTRUCTOR, lighthouse_mid_right)
-        for location in lighthouse_mid_right_breakers:
-            if game_state.can_spawn(FILTER, location):
-                game_state.attempt_spawn(FILTER, location)
-
-        # walls
-        for location in walls:
-            if game_state.can_spawn(FILTER, location):
-                game_state.attempt_spawn(FILTER, location)
+        for location in left_side_towers:
+            if game_state.can_spawn(DESTRUCTOR, location):
+                game_state.attempt_spawn(DESTRUCTOR, location)
     
 
 if __name__ == "__main__":

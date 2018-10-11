@@ -2,35 +2,77 @@ from .game_state import GameState, GameUnit
 import sys
 import warnings
 
-class AreaStats:
-    def __init__(self, stabilityTotal, filterCount, destructorCount, encryptorCount):
-        self.total_stability = stabilityTotal
-        self.filter_count = filterCount,
-        self.destructor_count = destructorCount
-        self.encryptor_count = encryptorCount
-    def __str__(self):
-        return "stability: {}, filters: {}, destructors: {}, encryptors: {}  ".format(self.total_stability, self.filter_count, self.destructor_count, self.encryptor_count)
-
 class AdvancedGameState(GameState):
     """A version of gamestate with access to a few more advanced functions
 
     """
-    def get_area_stats(self, coords):
-        from .game_state import FILTER, DESTRUCTOR, ENCRYPTOR
-        stability = 0
-        filters = 0
-        destructors = 0
-        encryptors = 0
-        for location in coords:
+    def row_openings(self, row_number):
+        spotsOpen = 0
+        for x in range(28):
+            if self.game_map.in_arena_bounds([x, row_number]) and len(self.game_map[x, row_number]) == 0:
+                spotsOpen += 1
+        return spotsOpen
+
+    def get_enemy_destructor_count_for_row(self, row_description):
+        return self.get_enemy_destructor_count_for_locations(self.game_map.get_row_locations(row_description))
+
+    def get_enemy_unit_count_for_row(self, row_description):
+        return self.get_enemy_unit_count_for_locations(self.game_map.get_row_locations(row_description))
+    
+    def get_enemy_unit_count_for_locations(self, locations):
+        unitCount = 0
+        for location in locations:
             for unit in self.game_map[location]:
-                stability += unit.stability
-                if unit.unit_type == FILTER:
-                    filters += 1
-                elif unit.unit_type == DESTRUCTOR:
-                    destructors += 1
-                elif unit.unit_type == ENCRYPTOR:
-                    encryptors += 1
-        return AreaStats(stability, filters, destructors, encryptors)
+                    if unit.player_index == 0:
+                        continue
+                    unitCount += 1
+        return unitCount
+
+    def get_enemy_destructor_count_for_locations(self, locations):
+        from .game_state import DESTRUCTOR
+
+        unitCount = 0
+        for location in locations:
+            for unit in self.game_map[location]:
+                    if unit.player_index == 0:
+                        continue
+                    if unit.unit_type == DESTRUCTOR:
+                        unitCount += 1
+        return unitCount
+
+    def get_free_target_count_for_EMP_locations(self, attacker_locations):
+        totalFreeTargets = 0
+        for attacker_location in attacker_locations:
+            if len(self.get_attackers(attacker_location, 0)) == 0:
+                possible_target_locations = self.game_map.get_locations_in_range(attacker_location, 5)
+                for location in possible_target_locations:
+                    for unit in self.game_map[location]:
+                        if unit.player_index == 0:
+                            continue
+                        totalFreeTargets += 1
+            else:
+                break
+
+        return totalFreeTargets
+
+    def get_target_count_for_EMP_locations(self, attacker_locations):
+        totalTargets = 0
+        for attacker_location in attacker_locations:
+            possible_target_locations = self.game_map.get_locations_in_range(attacker_location, 5)
+            for location in possible_target_locations:
+                for unit in self.game_map[location]:
+                    if unit.player_index == 0:
+                        continue
+                    totalTargets += 1
+
+        return totalTargets
+
+    def get_attacker_count_for_locations(self, defender_locations):
+        totalAttackers = 0
+        for defender_location in defender_locations:
+            totalAttackers += len(self.get_attackers(defender_location, 0))
+
+        return totalAttackers
 
     def get_target(self, attacking_unit):
         """Returns target of given unit based on current map of the game board. 

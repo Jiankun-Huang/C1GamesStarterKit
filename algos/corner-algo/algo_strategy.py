@@ -20,30 +20,53 @@ The GameState.map object can be manually manipulated to create hypothetical
 board states. Though, we recommended making a copy of the map to preserve 
 the actual current map state.
 """
+class Sides:
+    LEFT = 1
+    RIGHT = 2
+
+class Army:
+    def __init__(self):
+        self.IsAttackRecommended = True
+        self.RammingPings = 0
+        self.AttackingPings = 0
+        self.AttackingEMPs = 0
+    
+    def Strategize(self, defendingCoords, bitsToSpend):
+
+        return self.IsAttackRecommended
+
 
 class AlgoStrategy(gamelib.AlgoCore):
     
     def __init__(self):
         super().__init__()
         random.seed()
-        # state variables
+
+        self.readyToAttack = False
         self.useShockTroops = True
         self.attackedLastTurn = False
         self.lastEnemyHealth = 30
         self.troopDeploymentCoord = [13,0]
         self.rammingTroopsDeploymentCoord = [14,0]
-        self.firstTurnTroopCoord = [25,11]
+        self.firstTurnTroopCoord = [13,0]
+        self.predictedNewAttackers = 0
+        # ramming troops are only needed if there is no short path
+        self.useRammingTroops = False
 
-        self.attackRight = True
+        self.sideToAttack = Sides.RIGHT
         self.reinforceRight = False
         self.reinforceLeft = False
 
+        # left corner
+        self.enemy_left_corner_area = [[0,14], [1,14], [2,14], [3,14], [4,14], [5,14], [6,14]]
+        self.enemy_right_corner_area = [[27,14], [26,14], [25,14], [24,14], [23,14], [22,14], [21,14]]
         # main 'V' shape
         self.filter_left_leg_coords = [[2,13], [3,12], [4,11], [5,10], [6,9], [7,8], [8,7], [9,6], [10,5], [11, 4]] 
         self.filter_right_leg_coords = [[25,13], [24,12], [23,11], [22,10], [21,9], [20,8], [19,7], [18,6], [17,5], [16, 4]]
         # pick one corridoor
-        self.filter_left_corridoor_coords = [[12,3], [13,2], [14,2], [15,2], [26,13], [27,13]]
-        self.filter_right_corridoor_coords = [[15, 3], [14,2], [13,2], [12,2], [0,13], [1,13]]
+        self.overlapping_cooridoor_coords = [[14, 2], [13, 2]]
+        self.filter_left_corridoor_coords = [[12,3], [15,2], [26,13], [27,13]]
+        self.filter_right_corridoor_coords = [[15, 3], [12,2], [0,13], [1,13]]
 
         # build one per turn
         self.destroyer_funnel_coords = [[12,4], [15,4], [11,5], [16,5], [10,6], [17,6]]
@@ -89,25 +112,63 @@ class AlgoStrategy(gamelib.AlgoCore):
         unit deployments, and transmitting your intended deployments to the
         game engine.
         """
-        game_state = gamelib.GameState(self.config, turn_state)
+        game_state = gamelib.AdvancedGameState(self.config, turn_state)
+        p1UnitCount = len(self.jsonState.get('p1Units')[0])
+        p2UnitCount = len(self.jsonState.get('p2Units')[0])
+        #gamelib.debug_write('p1 has {} units. p2 has {} units'.format(p1UnitCount, p2UnitCount))
+
         if game_state.turn_number == 0:
             while game_state.can_spawn(PING, self.firstTurnTroopCoord):
                 game_state.attempt_spawn(PING, self.firstTurnTroopCoord)
             # no building this turn
         else:
-            #if shock troops aren't successful, go with the bruisers
-            if game_state.get_resource(game_state.BITS) >= 8:
-                self.attackedLastTurn = True
-                #while (len(gamelib.advanced_game_state.AdvancedGameState.get_attackers(game_state, self.troopDeploymentCoords, 0)) > 0):
-                #    self.moveDeploymentAway()
+            left_corner_stats = game_state.get_area_stats(self.enemy_left_corner_area)
+            gamelib.debug_write('left_corner_stats = {}'.format(left_corner_stats))
+            right_corner_stats = game_state.get_area_stats(self.enemy_right_corner_area)
+            gamelib.debug_write('right_corner_stats = {}'.format(right_corner_stats))
 
-                self.deployRammingTroops(game_state)
+            if game_state.get_resource(game_state.BITS) >= 8:
+                self.readyToAttack = True
+            else:
+                self.readyToAttack = False
+
+            # determine which side is more vulnerable
+            if left_corner_stats.destructor_count < right_corner_stats.destructor_count:
+                self.SetSideToAttack(Sides.LEFT, game_state)
+            else:
+                self.SetSideToAttack(Sides.RIGHT, game_state)
+
+            if self.readyToAttack:
+                if self.useRammingTroops:
+                    self.deployRammingTroops(game_state)
                 self.deployTroops(game_state)
+
             self.buildWalls(game_state)
-            # this doesn't work yet!
-            #self.markForRefund(game_state)
+            self.markForRefund(game_state)
 
         game_state.submit_turn()
+
+    def SetSideToAttack(self, newSide, game_state):
+        if not self.sideToAttack == newSide:
+            gamelib.debug_write('Attack the other side!')
+            self.readyToAttack = False
+            self.sideToAttack = newSide
+            self.SwitchAttackCooridoor(game_state)
+            if self.sideToAttack == Sides.LEFT:
+                self.troopDeploymentCoord = [14,0]
+                self.rammingTroopsDeploymentCoord = [13,0]
+            else:
+                self.troopDeploymentCoord = [13,0]
+                self.rammingTroopsDeploymentCoord = [14,0]
+    
+    def SwitchAttackCooridoor(self, game_state):
+        if self.sideToAttack == Sides.LEFT:
+            coordsToRemove = self.filter_right_corridoor_coords
+        else:
+            coordsToRemove = self.filter_left_leg_coords
+
+        for location in coordsToRemove:
+            game_state.attempt_remove(location)
 
     def deployRammingTroops(self, game_state):
         gamelib.debug_write('Sending Ramming Troops!')
@@ -119,23 +180,29 @@ class AlgoStrategy(gamelib.AlgoCore):
         while game_state.can_spawn(PING, self.troopDeploymentCoord):
             game_state.attempt_spawn(PING, self.troopDeploymentCoord)
         # it's bad to prioritize this over other walls, this should be moved!
-        if (game_state.can_spawn(ENCRYPTOR, self.encrypt_right_leg_coord)):
+        if (game_state.get_resource(game_state.BITS) >= 7 and game_state.can_spawn(ENCRYPTOR, self.encrypt_right_leg_coord)):
                 game_state.attempt_spawn(ENCRYPTOR, self.encrypt_right_leg_coord)
 
     def markForRefund(self, game_state):
         # if any firewalls have less than half stability, mark for removal
         for location in self.all_the_walls:
-            x = location[0]
-            y = location[1]
+            x, y = location
             if (game_state.game_map.in_arena_bounds(location)):
-                unit = game_state.game_map[x,y][0]
-                if unit.stability < 35:
-                    game_state.attempt_remove(location)
-            else:
-                gamelib.debug_write('Out of bounds? {}', location)
+                for unit in game_state.game_map[x,y]:
+                    if unit.stability < 35:
+                        game_state.attempt_remove(location)
 
     def buildWalls(self, game_state):
-        # always want leg walls built
+        if self.reinforceLeft:
+            for location in self.destroyer_left_leg_coords:
+                if (game_state.can_spawn(DESTRUCTOR, location)):
+                    game_state.attempt_spawn(DESTRUCTOR, location)
+
+        if self.reinforceRight:
+            for location in self.destroyer_right_leg_coords:
+                if (game_state.can_spawn(DESTRUCTOR, location)):
+                    game_state.attempt_spawn(DESTRUCTOR, location)
+
         for location in self.filter_left_leg_coords:
             if (game_state.can_spawn(FILTER, location)):
                 game_state.attempt_spawn(FILTER, location)
@@ -147,7 +214,11 @@ class AlgoStrategy(gamelib.AlgoCore):
                 if game_state.turn_number != 1:
                     self.reinforceRight = True
 
-        if self.attackRight:
+        for location in self.overlapping_cooridoor_coords:
+            if (game_state.can_spawn(FILTER, location)):
+                    game_state.attempt_spawn(FILTER, location)
+
+        if self.sideToAttack == Sides.RIGHT:
             for location in self.filter_right_corridoor_coords:
                 if (game_state.can_spawn(FILTER, location)):
                     game_state.attempt_spawn(FILTER, location)
@@ -156,16 +227,6 @@ class AlgoStrategy(gamelib.AlgoCore):
                 if (game_state.can_spawn(FILTER, location)):
                     game_state.attempt_spawn(FILTER, location)
         
-        if self.reinforceLeft:
-            for location in self.destroyer_left_leg_coords:
-                if (game_state.can_spawn(DESTRUCTOR, location)):
-                    game_state.attempt_spawn(DESTRUCTOR, location)
-
-        if self.reinforceRight:
-            for location in self.destroyer_right_leg_coords:
-                if (game_state.can_spawn(DESTRUCTOR, location)):
-                    game_state.attempt_spawn(DESTRUCTOR, location)
-
         for location in self.destroyer_funnel_coords:
             if (game_state.can_spawn(DESTRUCTOR, location)):
                 game_state.attempt_spawn(DESTRUCTOR, location)

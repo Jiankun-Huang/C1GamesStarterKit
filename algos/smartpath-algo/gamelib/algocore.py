@@ -1,5 +1,4 @@
 import json
-import gamelib
 
 from .game_state import GameState
 from .util import get_command, debug_write, BANNER_TEXT, send_command
@@ -13,6 +12,7 @@ class AlgoCore(object):
     """
     def __init__(self):
         self.config = None
+        self.jsonState = None
 
     def on_game_start(self, config):
         """
@@ -20,7 +20,7 @@ class AlgoCore(object):
         on the config, a json file which contains information about the game.
         """
         self.config = config
-        self.jsonState = None
+        self.breach_list = []
 
     def on_turn(self, game_state):
         """
@@ -66,8 +66,13 @@ class AlgoCore(object):
                     """
                     If stateType == 1, this game_state_string string represents the results of an action phase
                     """
-                    #this writes a lot!
-                    #gamelib.debug_write("SS:{}",game_state_string)
+                    for u in state['events']['breach']:
+                        #debug_write('breach - {}'.format(u))
+                        if u[0] not in self.breach_list:
+                            # make sure it wasn't my breach!!!
+                            self.breach_list.append(u[0])
+                    #debug_write('breachList - {}'.format(self.breach_list))
+
                     continue
                 elif stateType == 2:
                     """
