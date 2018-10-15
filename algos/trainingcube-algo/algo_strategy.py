@@ -35,6 +35,21 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.reversedCoords = [[20,13],[20,12],[20,11],[20,10],[13,0],[13,1],[13,2],[13,3],[13,4], [13,5]]
         self.buildCastleWall = False
         self.castleWallRow = 0
+        self.scramblerCoords = [[4,9], [8,5], [13,0], [17, 3], [21,7]]
+        self.pingCoord = [3, 10]
+        self.primaryTowers = [
+            [0, 13],[27, 13],[4, 12],[23, 12],[11, 11],[16, 11],[1,13],[26,13]
+        ]
+        self.secondaryTowers = [
+            [1, 12], [26, 12],[3, 12],[24, 12],[5,12],[22, 12],[6, 12],[21, 12],
+            [7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+            [17,11],[18,11],[19,11],[20,11]
+        ]
+        self.filterWall = [
+            [2,12],[3,13],[4,13],[5,13],[6,13],[7,13],[7,12],[8,12],[9,12],[10,12],
+            [11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],[18,12],[19,12],
+            [20,12],[20,13],[21,13],[22,13],[23,13],[24,13]
+        ]
 
     def on_game_start(self, config):
         """ 
@@ -58,71 +73,46 @@ class AlgoStrategy(gamelib.AlgoCore):
         p2UnitCount = len(self.jsonState.get('p2Units')[0]) + len(self.jsonState.get('p2Units')[1]) + len(self.jsonState.get('p2Units')[2])
         gamelib.debug_write('p2 has {} units'.format(p2UnitCount))
         
-        # let's build the corners #
-        if game_state.can_spawn(DESTRUCTOR, [0,13]):
-            game_state.attempt_spawn(DESTRUCTOR, [0, 13])
-        if game_state.can_spawn(DESTRUCTOR, [27, 13]):
-            game_state.attempt_spawn(DESTRUCTOR, [27, 13])
-        self.reinforceBreachLocation(game_state)
+        attackForDamage = False
+        self.buildTowers(game_state, self.primaryTowers)
 
-        # line detection #
-        # only worry about mirror if we have good defense set up?
-        # we should focus on the most forward wall?
-        firstRowDefenderCount = game_state.get_enemy_unit_count_for_row(game_state.game_map.FIRST_ENEMY_ROW)
-        firstRowDestructorCount = game_state.get_enemy_destructor_count_for_row(game_state.game_map.FIRST_ENEMY_ROW)
+        missingFilters = len(self.filterWall) - game_state.count_units_in_locations(self.filterWall)
+        if game_state.number_affordable(FILTER) >= missingFilters:
+            self.buildFilterWall(game_state)
+            self.buildTowers(game_state, self.secondaryTowers)
+            attackForDamage = True
+        else:
+            attackForDamage = False
 
-        secondRowDefenderCount = game_state.get_enemy_unit_count_for_row(game_state.game_map.SECOND_ENEMY_ROW)
-        secondRowDestructorCount = game_state.get_enemy_destructor_count_for_row(game_state.game_map.SECOND_ENEMY_ROW)
-        
-        thirdRowDefenderCount = game_state.get_enemy_unit_count_for_row(game_state.game_map.THIRD_ENEMY_ROW)
-        thirdRowDestructorCount = game_state.get_enemy_destructor_count_for_row(game_state.game_map.THIRD_ENEMY_ROW)
 
-        fourthRowDefenderCount = game_state.get_enemy_unit_count_for_row(game_state.game_map.FOURTH_ENEMY_ROW)
-        fourthRowDestructorCount = game_state.get_enemy_destructor_count_for_row(game_state.game_map.FOURTH_ENEMY_ROW)
-        
-        gamelib.debug_write('row counts: {},{},{},{}'.format(firstRowDefenderCount, secondRowDefenderCount, thirdRowDefenderCount, fourthRowDefenderCount))
-
-        # we may need to move our wall at some point
-        if firstRowDestructorCount > 6:
-            self.buildCastleWall = True
-            self.castleWallRow = 10
-        elif secondRowDestructorCount > 6:
-            self.buildCastleWall = True
-            self.castleWallRow = 11
-        elif thirdRowDestructorCount > 6:
-            self.buildCastleWall = True
-            self.castleWallRow = 12
-        elif fourthRowDefenderCount > 6:
-            self.buildCastleWall = True
-            self.castleWallRow = 13
-        
-        # this is problematic when it keeps dying
-        if self.buildCastleWall:
-            self.buildWall(game_state)
-
-        # consider attacking with PINGs or SCRAMBLERS? if the enemy has a vulnerable path!
-        if game_state.turn_number != 0:
-            if game_state.turn_number > 70:
-                # what about sending scramblers?
-                if game_state.my_health < 5 and game_state.number_affordable(PING) > 20:
-                    self.attackForMaxPain(game_state)
-                elif game_state.project_future_bits() < game_state.get_resource(game_state.BITS) + 1:
-                    self.attackForMaxPain(game_state)
-            elif p2UnitCount < 8:
-                self.attackForMaxPain(game_state)
-            elif game_state.turn_number != 1 and game_state.turn_number % 28 in [0, 1, 2]:  
-                if game_state.turn_number % 28 == 1:
-                    for x in range(4):
-                        game_state.attempt_remove([20, 13 - x])
-                elif game_state.turn_number % 28 == 2:
-                    self.attackForMaxTargets(game_state)
-            else:
-                self.attackForMaxDestruction(game_state)
-
-        for location in self.reversedCoords:
-            game_state.attempt_remove(location)
+        if attackForDamage:
+            if game_state.number_affordable(EMP) > 2 + (game_state.turn_number // 10):
+                while game_state.can_spawn(EMP, self.pingCoord):
+                    game_state.attempt_spawn(EMP, self.pingCoord)
+        else:
+            for location in self.scramblerCoords:
+                if game_state.can_spawn(SCRAMBLER, location):
+                    game_state.attempt_spawn(SCRAMBLER, location)
 
         game_state.submit_turn()
+
+    def buildTowers(self, game_state, locations):
+        for location in locations:
+            x, y = location
+            for unit in game_state.game_map[x,y]:
+                if unit.stability < 35:
+                    game_state.attempt_remove(location)
+            if game_state.can_spawn(DESTRUCTOR, location):
+                game_state.attempt_spawn(DESTRUCTOR, location)
+
+    def buildFilterWall(self, game_state):
+        for location in self.filterWall:
+            x, y = location
+            for unit in game_state.game_map[x,y]:
+                if unit.stability < 35:
+                    game_state.attempt_remove(location)
+            if game_state.can_spawn(FILTER, location):
+                game_state.attempt_spawn(FILTER, location)
 
     def buildWall(self, game_state):
         # always start from the left for now
