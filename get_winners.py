@@ -27,7 +27,9 @@ try:
 			with open(replayDir+'\\'+filename, 'r') as file:
 				data = file.read()
 				if (data.find('"winner":1') != -1): p1WinCnt += 1
-				elif (data.find('"winner":2') != -1): p2WinCnt += 1
+				elif (data.find('"winner":2') != -1):
+					p2WinCnt += 1
+					print ('P2 won in {}'.format(filename))
 				else: unknown += 1
 
 	# Print results

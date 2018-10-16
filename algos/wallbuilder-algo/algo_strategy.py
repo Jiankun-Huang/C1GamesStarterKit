@@ -30,7 +30,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.useShockTroops = True
         self.attackedLastTurn = False
         self.lastEnemyHealth = 30
-        self.troopDeploymentCoords = [13,0]
+        self.troopDeploymentCoords = [3,10]
 
     def on_game_start(self, config):
         """ 
@@ -76,7 +76,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             #while (len(gamelib.advanced_game_state.AdvancedGameState.get_attackers(game_state, self.troopDeploymentCoords, 0)) > 0):
             #    self.moveDeploymentAway()
 
-            if self.useShockTroops:
+            if False:#self.useShockTroops:
                 self.deployShockTroops(game_state)
             else:
                 self.deployBruisers(game_state)
