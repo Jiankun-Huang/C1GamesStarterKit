@@ -47,6 +47,8 @@ class GameState:
         """
         self.serialized_string = serialized_string
         self.config = config
+        self.friendly_firewall_locations = []
+        self.enemy_firewall_locations = []
 
         global FILTER, ENCRYPTOR, DESTRUCTOR, PING, EMP, SCRAMBLER, REMOVE, FIREWALL_TYPES, ALL_UNITS, UNIT_TYPE_TO_INDEX
         UNIT_TYPE_TO_INDEX = {}
@@ -126,6 +128,12 @@ class GameState:
                     self.game_map[x,y][0].pending_removal = True
                 unit = GameUnit(unit_type, self.config, player_number, hp, x, y)
                 self.game_map[x,y].append(unit)
+                # do not worry about REMOVE units
+                if unit_type in [FILTER, ENCRYPTOR, DESTRUCTOR]:
+                    if player_number == 0:
+                        self.friendly_firewall_locations.append([x,y])
+                    else:
+                        self.enemy_firewall_locations.append([x,y])
 
     def __resource_required(self, unit_type):
         return self.CORES if is_stationary(unit_type) else self.BITS

@@ -35,6 +35,10 @@ class GameMap:
         self.TOP_LEFT = 1
         self.BOTTOM_LEFT = 2
         self.BOTTOM_RIGHT = 3
+        self.FIRST_ENEMY_ROW = 4
+        self.SECOND_ENEMY_ROW = 5
+        self.THIRD_ENEMY_ROW = 6
+        self.FOURTH_ENEMY_ROW = 7
         self.__map = self.__empty_grid()
         self.__start = [13,0]
     
@@ -102,6 +106,26 @@ class GameMap:
         bottom_half_check = (y >= self.HALF_ARENA and x >= startx and x <= endx)
 
         return bottom_half_check or top_half_check
+
+    def get_row_locations(self, row_description):
+        if not row_description in [self.FIRST_ENEMY_ROW, self.SECOND_ENEMY_ROW, self.THIRD_ENEMY_ROW, self.FOURTH_ENEMY_ROW]:
+            warnings.warn("Passed invalid row_description '{}'.".format(row_description))
+
+        row = []
+        if row_description == self.FIRST_ENEMY_ROW:
+            for x in range(28):
+                row.append([x, 14])
+        elif row_description == self.SECOND_ENEMY_ROW:
+            for x in range(26):
+                row.append([x + 1, 15])
+        elif row_description == self.THIRD_ENEMY_ROW:
+            for x in range(24):
+                row.append([x + 2, 16])
+        elif row_description == self.FOURTH_ENEMY_ROW:
+            for x in range(22):
+                row.append([x + 3, 17])
+
+        return row
 
     def get_edge_locations(self, quadrant_description):
         """Takes in an edge description and returns a list of locations.

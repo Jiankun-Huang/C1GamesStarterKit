@@ -12,6 +12,7 @@ class AlgoCore(object):
     """
     def __init__(self):
         self.config = None
+        self.jsonState = None
 
     def on_game_start(self, config):
         """
@@ -19,6 +20,12 @@ class AlgoCore(object):
         on the config, a json file which contains information about the game.
         """
         self.config = config
+        self.breach_list = []
+        self.enemy_spawn_coords = []
+        self.enemy_army_cost = 0
+        self.enemy_ping_spawn_count = 0
+        self.enemy_EMP_spawn_count = 0
+        
 
     def on_turn(self, game_state):
         """
@@ -52,6 +59,7 @@ class AlgoCore(object):
                 self.on_game_start(parsed_config)
             elif "turnInfo" in game_state_string:
                 state = json.loads(game_state_string)
+                self.jsonState = state
                 stateType = int(state.get("turnInfo")[0])
                 if stateType == 0:
                     """
@@ -63,6 +71,26 @@ class AlgoCore(object):
                     """
                     If stateType == 1, this game_state_string string represents the results of an action phase
                     """
+                    for u in state['events']['spawn']:
+                        x, y = u[0]
+                        # check if it is an enemy spawn attacking unit (PING, EMP, SCRAMBLER)
+                        if u[1] in [3,4,5] and y > 13:
+                            if u[1] == 3:
+                                self.enemy_ping_spawn_count += 1
+                            elif u[1] == 4:
+                                self.enemy_EMP_spawn_count += 1
+
+                            if u[0] not in self.enemy_spawn_coords:
+                                self.enemy_spawn_coords.append(u[0])
+                                debug_write('SPAWN at {}'.format(u[0]))
+
+                    for u in state['events']['breach']:
+                        #debug_write('breach - {}'.format(u))
+                        if u[0] not in self.breach_list:
+                            # make sure it wasn't my breach!!!
+                            self.breach_list.append(u[0])
+                    #debug_write('breachList - {}'.format(self.breach_list))
+
                     continue
                 elif stateType == 2:
                     """
