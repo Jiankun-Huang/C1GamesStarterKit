@@ -2,6 +2,7 @@ import gamelib
 import random
 import math
 import warnings
+import copy
 from sys import maxsize
 
 """
@@ -92,8 +93,22 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.buildFirewalls(game_state, self.encryptors, ENCRYPTOR, False)
 
 
-        while game_state.can_spawn(EMP, [24, 10]):
-            game_state.attempt_spawn(EMP, [24, 10])
+        # if damage dealt last turn is greater than 4 CORES worth (so that a hole gets left open) 
+        # 52->45, no dice 58->50, 59->50
+        # 59->47 SUCCESS, 58->51, success
+        if game_state.turn_number > 5:
+            copy_of_game_state = copy.deepcopy(game_state)
+            risk = self.attackForMaxPain(copy_of_game_state)
+            if risk == 0:
+                self.attackForMaxPain(game_state)
+        
+        # MAX STRUCTURE DAMAGE, win on round 43
+        self.attackForMaxDestruction(game_state)
+        
+        
+        #while game_state.can_spawn(EMP, [24, 10]):
+        #    game_state.attempt_spawn(EMP, [24, 10])
+        
 
         game_state.submit_turn()
 
@@ -156,34 +171,50 @@ class AlgoStrategy(gamelib.AlgoCore):
 
     def attackForMaxPain(self, game_state):
         deployLocation = [13, 0]
-        lowestPathRisk = 10
+        lowestPathRisk = 1000
         
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT):
-            if game_state.can_spawn(PING, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            #if game_state.can_spawn(PING, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            if game_state.can_spawn(PING, startLocation):
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_RIGHT)
-                pathRisk = 0
-                for step in path:
-                    pathRisk =+ len(game_state.get_attackers(step, 0))
-                
-                if pathRisk < lowestPathRisk:
-                    lowestPathRisk = pathRisk
-                    deployLocation = startLocation
+                lastX, lastY = path[-1]
+                # need to make it at least to the edge of our map to be considered!
+                if lastY >= 13:
+                    pathRisk = 0
+                    #gamelib.debug_write('STARTING FROM {}'.format(path[0]))
+                    for step in path:
+                        attackers = len(game_state.get_attackers(step, 0))
+                        #gamelib.debug_write('{} - attackers={}'.format(step, attackers))
+                        pathRisk += attackers
+                    
+                    if pathRisk < lowestPathRisk:
+                        lowestPathRisk = pathRisk
+                        deployLocation = startLocation
 
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT):
-            if game_state.can_spawn(PING, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            #if game_state.can_spawn(PING, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            if game_state.can_spawn(PING, startLocation):
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_LEFT)
-                pathRisk = 0
-                for step in path:
-                    pathRisk =+ len(game_state.get_attackers(step, 0))
-                
-                if pathRisk < lowestPathRisk:
-                    lowestPathRisk = pathRisk
-                    deployLocation = startLocation
+                lastX, lastY = path[-1]
+                # need to make it at least to the edge of our map to be considered!
+                if lastY >= 13:
+                    pathRisk = 0
+                    #gamelib.debug_write('STARTING FROM {}'.format(path[0]))
+                    for step in path:
+                        attackers = len(game_state.get_attackers(step, 0))
+                        #gamelib.debug_write('{} - attackers={}'.format(step, attackers))
+                        pathRisk += attackers
+                    
+                    if pathRisk < lowestPathRisk:
+                        lowestPathRisk = pathRisk
+                        deployLocation = startLocation
 
         gamelib.debug_write('Lowest risk path value = {}'.format(lowestPathRisk))
 
         while game_state.can_spawn(PING, deployLocation):
             game_state.attempt_spawn(PING, deployLocation)
+
+        return lowestPathRisk
 
     def attackForMaxTargets(self, game_state):
         deployLocation = [13, 0]
@@ -238,35 +269,14 @@ class AlgoStrategy(gamelib.AlgoCore):
                     targetEdge = game_state.game_map.TOP_LEFT
 
         gamelib.debug_write('Best path value = {}'.format(bestPathValue))
-
         
-        if game_state.number_affordable(EMP) > 2:
-            path = game_state.find_path_to_edge(deployLocation, targetEdge)
-            x, y = path[len(path) - 1] 
-            if y >= 13:
-                ''' # ENCRYPTORs have not been useful yet
-                if game_state.number_affordable(ENCRYPTOR) > 0:
-                    # find a good place to put it!
-                    encryptorPlaced = False
-                    for step in game_state.find_path_to_edge(deployLocation, targetEdge):
-                        x, y = step
-                        if y == 13 and not encryptorPlaced:
-                            if game_state.can_spawn(ENCRYPTOR, [x-1,y]):
-                                game_state.attempt_spawn(ENCRYPTOR, [x-1,y])
-                                encryptorPlaced = True
-                            elif game_state.can_spawn(ENCRYPTOR, [x+1,y]):
-                                game_state.attempt_spawn(ENCRYPTOR, [x+1,y])
-                                encryptorPlaced = True
-                            else:
-                                gamelib.debug_write('Wanted to spawn encryptor but could not find suitable location!')
-                '''
-
-                while game_state.can_spawn(EMP, deployLocation):
-                    game_state.attempt_spawn(EMP, deployLocation)
-            else:
-                gamelib.debug_write('No path outside our territory, NOT DEPLOYING TROOPS')
-                for x in range(4):
-                    game_state.attempt_remove([20, 13 - x])
+        path = game_state.find_path_to_edge(deployLocation, targetEdge)
+        x, y = path[len(path) - 1] 
+        if y >= 13:
+            while game_state.can_spawn(EMP, deployLocation):
+                game_state.attempt_spawn(EMP, deployLocation)
+        else:
+            gamelib.debug_write('No path outside our territory, NOT DEPLOYING TROOPS')
 
 if __name__ == "__main__":
     algo = AlgoStrategy()

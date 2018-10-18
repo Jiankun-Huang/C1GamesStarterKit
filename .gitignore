@@ -5,3 +5,4 @@
 algos/sub*
 dist/*
 !dist/.gitkeep
+1.txt

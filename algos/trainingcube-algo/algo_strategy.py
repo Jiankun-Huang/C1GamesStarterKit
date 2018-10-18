@@ -153,7 +153,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_RIGHT)
                 pathRisk = 0
                 for step in path:
-                    pathRisk =+ len(game_state.get_attackers(step, 0))
+                    pathRisk += len(game_state.get_attackers(step, 0))
                 
                 if pathRisk < lowestPathRisk:
                     lowestPathRisk = pathRisk
@@ -164,7 +164,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_LEFT)
                 pathRisk = 0
                 for step in path:
-                    pathRisk =+ len(game_state.get_attackers(step, 0))
+                    pathRisk += len(game_state.get_attackers(step, 0))
                 
                 if pathRisk < lowestPathRisk:
                     lowestPathRisk = pathRisk
