@@ -25,7 +25,7 @@
 $global:completed = 0		# Number of games that have finished
 $global:running = 0			# Number of games currently running
 $dir = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Path)		#Get the current directory of this script
-$algos = dir algos -Directory | Select-Object Name
+$algos = dir algos/sub-brawl -Directory | Select-Object Name
 $algoCount = $algos.count
 # Set batch size defaults - sets how many games can run at one time
 If (!$args[1]) {
@@ -48,7 +48,7 @@ For ($i = 1; $i -lt $algoCount+1; $i++) {
 	$runprog = {
 		param($path, $p1Name, $p2Name)
 		cd $path
-		scripts/run_match.ps1 algos/$p1Name algos/$p2Name | Out-Null				# Edit this to change the algo you are running
+		scripts/run_match.ps1 algos/$p1Name algos/sub-brawl/$p2Name | Out-Null				# Edit this to change the algo you are running
 	}
 	$job = Start-Job $runprog -ArgumentList $dir, $p1Name, $p2Name 		# Start the new powershell
 	$global:running++										# Add 1 to the number of running programs

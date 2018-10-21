@@ -31,34 +31,62 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.attackWithPings = True
         self.attackedLastTurn = False
         self.lastEnemyHealth = 30
+        self.lastEnemyArmyDict = {}
         self.troopDeploymentCoords = [13,0]
         # maybe this magical cooridoor is suicide, but we'll see!
         self.reservedCoords = [
             [22,10],[23,10]
         ]
-        self.buildCastleWall = False
+        self.useRightDoor = True
+        self.coresToSpendOnRebuilding = 0
         self.castleWallRow = 0
-        self.scramblerCoords = [[4,9], [8,5], [13,0], [17, 3], [21,7]]
-        self.pingCoord = [3, 10]
-        self.mainTowers = [
-            [3, 11],[5, 11],[8, 11],[12, 11],[15, 11],[19, 11],[23, 11]
+        self.turnZeroScramblerCoord = [7, 6]
+        self.turnZeroEMPCoord = [20, 6]
+        
+        self.turnZeroTowers = [
+            [3, 11],[24, 11]
         ]
-        self.filterWall = [
-            [0, 13],[1, 12],[2, 11],[27, 13],[26, 12],[25, 11],
-            [24, 11],[22, 11],[21, 11],[20, 11],[18, 11],[17, 11],[16, 11],
-            [14, 11],[13, 11],[11, 11],[10, 11],[9, 11],[7, 11],[6, 11],
-            [3, 10],[4, 9],[5, 9],[6, 9],[7, 9],[8, 9]
+        self.filterCorners = [
+            [0, 13],[1, 12],[2, 11],[27, 13],[26, 12],[25, 11]
         ]
-        self.extraCornerTower = [
+        self.leftDoorTowers = [
+            [5, 11],[20, 11],[16, 11],[12, 11],[8, 11]
+        ]
+        self.leftDoorFilters = [
+            [23, 11],[22, 11],[21, 11],[19, 11],[18, 11],[17, 11],[15, 11],[14, 11],[13, 11],
+            [11, 11],[10, 11],[9, 11],[7, 11],[6, 11]
+        ]
+        self.leftExtraCornerTower = [
             [2, 12]
         ]
-        self.frontWall = [
-            [2, 13],[1, 13]
+        self.leftRearHallway = [
+            [3, 10],[4, 9],[5, 9],[6, 9],[7, 9],[8, 9]
         ]
-        for x in range(22):
-            self.frontWall.append([3 + x, 13])
-        self.encryptors = [
-            [23, 9],[21, 9],[19, 9],[17, 9],[15, 9],[13, 9],[11, 9],[9, 9]
+        self.leftFrontWall = []
+        for x in range(24):
+            self.leftFrontWall.append([1 + x, 13])
+        self.leftEncryptors = [
+            [21, 9],[5, 8],[9, 9],[15, 9],[11, 9],[13, 9],[17, 9],[19, 9],[23, 9]
+        ]
+
+        self.rightDoorTowers = [
+            [22, 11],[7, 11],[11, 11],[15, 11],[19, 11]
+        ]
+        self.rightDoorFilters = [
+            [4, 11],[5, 11],[6, 11],[8, 11],[9, 11],[10, 11],[12, 11],[13, 11],[14, 11],
+            [16, 11],[17, 11],[18, 11],[20, 11],[21, 11]
+        ]
+        self.rightRearHallway = [
+            [24, 10],[23, 9],[22, 9],[21, 9],[20, 9],[19, 9]
+        ]
+        self.rightExtraCornerTower = [
+            [25, 12]
+        ]
+        self.rightFrontWall = []
+        for x in range(24):
+            self.rightFrontWall.append([26 - x,13])
+        self.rightEncryptors = [
+            [22, 8],[6, 9],[18, 9],[12, 9],[16, 9],[14, 9],[10, 9],[8, 9],[4, 9]
         ]
 
     def on_game_start(self, config):
@@ -79,37 +107,114 @@ class AlgoStrategy(gamelib.AlgoCore):
 
     def on_turn(self, turn_state):
         game_state = gamelib.AdvancedGameState(self.config, turn_state)
-        #p1UnitCount = len(self.jsonState.get('p1Units')[0])
+        p1UnitCount = len(self.jsonState.get('p1Units')[0])
         p2UnitCount = len(self.jsonState.get('p2Units')[0]) + len(self.jsonState.get('p2Units')[1]) + len(self.jsonState.get('p2Units')[2])
         gamelib.debug_write('p2 has {} units'.format(p2UnitCount))
+        gamelib.debug_write('p2 army cost last turn = {}'.format(self.enemy_army_cost))
         
-        shouldRebuild = game_state.turn_number > 7
-        needsStrongerCorners = game_state.turn_number > 3            
+        if self.army_dict.get('total_cost', 0) > 0:
+            self.lastEnemyArmyDict = self.army_dict.copy()
+        
+        if 'total_cost' in self.lastEnemyArmyDict and game_state.get_resource(game_state.BITS, 1) >= self.lastEnemyArmyDict['total_cost']:
+            gamelib.debug_write('I predict that p2 will spawn an army this turn!')
+        
+        shouldRebuild = game_state.turn_number > 3
+        shouldRebuildWall = p1UnitCount >= 30
+        needsStrongerCorners = game_state.turn_number > 3      
+        towersToBuild = 1   
+        self.coresToSpendOnRebuilding = 4
 
-        self.buildFirewalls(game_state, self.mainTowers, DESTRUCTOR, False)
-        self.buildFirewalls(game_state, self.filterWall, FILTER, False)
-        self.buildFirewalls(game_state, self.extraCornerTower, DESTRUCTOR, False)
-        self.buildFirewalls(game_state, self.frontWall, FILTER, False)
-        self.buildFirewalls(game_state, self.encryptors, ENCRYPTOR, False)
+        if game_state.turn_number == 0:
+            self.buildFirewalls(game_state, self.filterCorners, FILTER, False)
+            self.buildFirewalls(game_state, self.turnZeroTowers, DESTRUCTOR, False)
+            game_state.attempt_spawn(EMP, self.turnZeroEMPCoord)
+            game_state.attempt_spawn(SCRAMBLER, self.turnZeroScramblerCoord)
 
+        else:
+            if game_state.turn_number == 1:
+                # copy game_state twice, build left and right door and see which provides more targets
+                # consider making a full line across to see how many targets are in range?
+                # with the goal of maximizing the targets safe to hit from behind our wall??
+                # That might be enough to beat George?
+                # Also, add more weight to high-value targets, if we can safely take out DESTRUCTORs, do it!!
+                game_state_try_left = copy.deepcopy(game_state)
+                self.buildFirewalls(game_state_try_left, self.leftDoorTowers, DESTRUCTOR, False, 3)
+                self.buildFirewalls(game_state_try_left, self.leftDoorFilters, FILTER, False)
+                leftValue = self.attackForMaxDestruction(game_state_try_left)
 
-        # if damage dealt last turn is greater than 4 CORES worth (so that a hole gets left open) 
-        # 52->45, no dice 58->50, 59->50
-        # 59->47 SUCCESS, 58->51, success
-        if game_state.turn_number > 5:
-            copy_of_game_state = copy.deepcopy(game_state)
-            risk = self.attackForMaxPain(copy_of_game_state)
-            if risk == 0:
-                self.attackForMaxPain(game_state)
-        
-        # MAX STRUCTURE DAMAGE, win on round 43
-        self.attackForMaxDestruction(game_state)
-        
-        
-        #while game_state.can_spawn(EMP, [24, 10]):
-        #    game_state.attempt_spawn(EMP, [24, 10])
-        
+                game_state_try_right = copy.deepcopy(game_state)
+                self.buildFirewalls(game_state_try_right, self.rightDoorTowers, DESTRUCTOR, False, 3)
+                self.buildFirewalls(game_state_try_right, self.rightDoorFilters, FILTER, False)
+                rightValue = self.attackForMaxDestruction(game_state_try_right)
 
+                gamelib.debug_write("leftValue = {}, rightValue = {}".format(leftValue, rightValue))
+
+                self.useRightDoor = (rightValue > leftValue)
+                towersToBuild = 3
+
+            if game_state.turn_number == 2:
+                if self.useRightDoor:
+                    game_state.attempt_spawn(ENCRYPTOR, [6, 9])
+                else:
+                    game_state.attempt_spawn(ENCRYPTOR, [21, 9])
+
+            if self.useRightDoor and [27, 13] in self.breach_list:
+                if game_state.can_spawn(DESTRUCTOR, [26, 12]):
+                    game_state.attempt_spawn(DESTRUCTOR, [26, 12])
+            elif not self.useRightDoor and [0, 13] in self.breach_list:
+                if game_state.can_spawn(DESTRUCTOR, [1, 12]):
+                    game_state.attempt_spawn(DESTRUCTOR, [1, 12])
+
+            self.buildFirewalls(game_state, self.filterCorners, FILTER, shouldRebuild)
+            self.buildFirewalls(game_state, self.turnZeroTowers, DESTRUCTOR, shouldRebuild)
+            if self.useRightDoor:
+                self.buildFirewalls(game_state, self.rightDoorTowers, DESTRUCTOR, shouldRebuildWall, towersToBuild)
+                self.buildFirewalls(game_state, self.rightDoorFilters, FILTER, shouldRebuildWall)
+                self.buildFirewalls(game_state, self.rightExtraCornerTower, DESTRUCTOR, False)
+                self.buildFirewalls(game_state, self.rightRearHallway, FILTER, False)
+                self.buildFirewalls(game_state, [[22, 8]], ENCRYPTOR, False)
+                # the front wall might be fruitless - if the same things are getting destoryed
+                # over and over, it would probably do better to build encryptors to break the stalemate
+                # could even finance it by selling the rear hallway.
+                self.buildFirewalls(game_state, self.rightFrontWall, FILTER, False)
+                self.buildFirewalls(game_state, self.rightEncryptors, ENCRYPTOR, False)
+            else:
+                self.buildFirewalls(game_state, self.leftDoorTowers, DESTRUCTOR, shouldRebuildWall, towersToBuild)
+                self.buildFirewalls(game_state, self.leftDoorFilters, FILTER, shouldRebuildWall)
+                self.buildFirewalls(game_state, self.leftExtraCornerTower, DESTRUCTOR, False)
+                self.buildFirewalls(game_state, self.leftRearHallway, FILTER, False)
+                self.buildFirewalls(game_state, [[5, 8]], ENCRYPTOR, False)
+                # the front wall might be fruitless - if the same things are getting destoryed
+                # over and over, it would probably do better to build encryptors to break the stalemate
+                # could even finance it by selling the rear hallway.
+                self.buildFirewalls(game_state, self.leftFrontWall, FILTER, False)
+                self.buildFirewalls(game_state, self.leftEncryptors, ENCRYPTOR, False)
+                        
+            if game_state.turn_number > 5:
+                copy_of_game_state = copy.deepcopy(game_state)
+                risk = self.attackForMaxPain(copy_of_game_state)
+                if risk == 0:
+                    self.attackForMaxPain(game_state)
+            
+            # we may need to counter their troops
+            if game_state.turn_number > 3:
+                self.attackForMaxDestruction(game_state)
+            else:
+                if self.useRightDoor:
+                    while game_state.can_spawn(EMP, [3, 10]):
+                        game_state.attempt_spawn(EMP, [3, 10])
+                else:
+                    while game_state.can_spawn(EMP, [24, 10]):
+                        game_state.attempt_spawn(EMP, [24, 10])
+                    
+
+        # reset the dictionary for the next analysis
+        self.army_dict['total_count'] = 0
+        self.army_dict['total_cost'] = 0
+        self.army_dict['ping_count'] = 0
+        self.army_dict['EMP_count'] = 0
+        self.army_dict['scrambler_count'] = 0
+        self.enemy_spawns.clear()
         game_state.submit_turn()
 
     def reinforceDestructors(self, game_state, locations, rebuildAsNeeded):
@@ -140,19 +245,24 @@ class AlgoStrategy(gamelib.AlgoCore):
                 if game_state.can_spawn(FILTER, oneLeft):
                     game_state.attempt_spawn(FILTER, oneLeft)
     
-    def buildFirewalls(self, game_state, locations, unit_type, rebuildAsNeeded):
+    def buildFirewalls(self, game_state, locations, unit_type, rebuildAsNeeded, maxToBuild = 100):
+        numberBuilt = 0
         for location in locations:
             if location not in self.reservedCoords:
                 if rebuildAsNeeded:
                     self.checkForRefund(game_state, location)
                 if game_state.can_spawn(unit_type, location):
                     game_state.attempt_spawn(unit_type, location)
+                    numberBuilt += 1
+                    if numberBuilt >= maxToBuild:
+                        return
 
     def checkForRefund(self, game_state, location):
         x, y = location
         for unit in game_state.game_map[x,y]:
-            if unit.stability < 35:
+            if unit.stability < 35 and self.coresToSpendOnRebuilding >= unit.cost:
                 game_state.attempt_remove(location)
+                self.coresToSpendOnRebuilding -= unit.cost
 
     
  
@@ -217,7 +327,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         return lowestPathRisk
 
     def attackForMaxTargets(self, game_state):
-        deployLocation = [13, 0]
+        if self.useRightDoor:
+            deployLocation = [3, 10]
+        else:
+            deployLocation = [24, 10]
         bestPathValue = 0
         targetEdge = game_state.game_map.TOP_RIGHT
 
@@ -277,6 +390,8 @@ class AlgoStrategy(gamelib.AlgoCore):
                 game_state.attempt_spawn(EMP, deployLocation)
         else:
             gamelib.debug_write('No path outside our territory, NOT DEPLOYING TROOPS')
+        
+        return bestPathValue
 
 if __name__ == "__main__":
     algo = AlgoStrategy()
