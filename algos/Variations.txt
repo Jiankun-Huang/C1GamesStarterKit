@@ -2,3 +2,7 @@ NMFF-stronger-corners:
     Instead of only reinforcing the corner where the door is, reinforce both corners based on breach locations
     This seems low risk for causing regression in performance and I've seen close games were better "off" corner
     defense seems prudent
+
+NMFF-SC-RE:
+    NMFF-stronger-corners, plus reinforcing at >= 27 (instead of 30) as that means we've built the full wall-ish.
+    Also we had only been counting filters up to now ... oops

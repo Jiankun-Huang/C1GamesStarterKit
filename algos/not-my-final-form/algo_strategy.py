@@ -107,7 +107,7 @@ class AlgoStrategy(gamelib.AlgoCore):
 
     def on_turn(self, turn_state):
         game_state = gamelib.AdvancedGameState(self.config, turn_state)
-        p1UnitCount = len(self.jsonState.get('p1Units')[0])
+        p1UnitCount = len(self.jsonState.get('p1Units')[0]) + len(self.jsonState.get('p1Units')[1]) + len(self.jsonState.get('p1Units')[2])
         p2UnitCount = len(self.jsonState.get('p2Units')[0]) + len(self.jsonState.get('p2Units')[1]) + len(self.jsonState.get('p2Units')[2])
         gamelib.debug_write('p2 has {} units'.format(p2UnitCount))
         gamelib.debug_write('p2 army cost last turn = {}'.format(self.enemy_army_cost))
@@ -119,7 +119,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             gamelib.debug_write('I predict that p2 will spawn an army this turn!')
         
         shouldRebuild = game_state.turn_number > 3
-        shouldRebuildWall = p1UnitCount >= 30
+        shouldRebuildWall = p1UnitCount >= 27 #only reinforce if the full wall is in place
         needsStrongerCorners = game_state.turn_number > 3      
         towersToBuild = 1   
         self.coresToSpendOnRebuilding = 4
