@@ -158,10 +158,10 @@ class AlgoStrategy(gamelib.AlgoCore):
                 else:
                     game_state.attempt_spawn(ENCRYPTOR, [21, 9])
 
-            if self.useRightDoor and [27, 13] in self.breach_list:
+            if [27, 13] in self.breach_list:
                 if game_state.can_spawn(DESTRUCTOR, [26, 12]):
                     game_state.attempt_spawn(DESTRUCTOR, [26, 12])
-            elif not self.useRightDoor and [0, 13] in self.breach_list:
+            if [0, 13] in self.breach_list:
                 if game_state.can_spawn(DESTRUCTOR, [1, 12]):
                     game_state.attempt_spawn(DESTRUCTOR, [1, 12])
 
