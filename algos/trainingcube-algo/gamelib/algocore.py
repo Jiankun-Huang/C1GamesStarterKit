@@ -21,6 +21,13 @@ class AlgoCore(object):
         """
         self.config = config
         self.breach_list = []
+        self.enemy_spawn_coords = []
+        self.enemy_army_cost = 0
+        self.enemy_ping_spawn_count = 0
+        self.enemy_EMP_spawn_count = 0
+        self.army_dict = {'total_count': 0, 'total_cost': 0, 'ping_count': 0, 'EMP_count': 0, 'scrambler_count': 0}
+        self.enemy_spawns = []
+        
 
     def on_turn(self, game_state):
         """
@@ -66,11 +73,35 @@ class AlgoCore(object):
                     """
                     If stateType == 1, this game_state_string string represents the results of an action phase
                     """
+                    for u in state['events']['spawn']:
+                        x, y = u[0]
+                        # check if it is an enemy spawn attacking unit (PING, EMP, SCRAMBLER)
+                        if u[1] in [3,4,5] and y > 13:
+                            self.army_dict["total_count"] += 1
+                            self.enemy_spawns.append(u)
+                            if u[1] == 3:
+                                self.enemy_ping_spawn_count += 1
+                                self.army_dict["total_cost"] += 1
+                                self.army_dict["ping_count"] += 1
+                            elif u[1] == 4:
+                                self.enemy_EMP_spawn_count += 1
+                                self.army_dict["total_cost"] += 3
+                                self.army_dict["EMP_count"] += 1
+                            elif [1] == 5:
+                                self.army_dict["total_cost"] += 1
+                                self.army_dict["scrambler_count"] += 1
+
+                            if u[0] not in self.enemy_spawn_coords:
+                                self.enemy_spawn_coords.append(u[0])
+                                debug_write('SPAWN at {}'.format(u[0]))
+
                     for u in state['events']['breach']:
+                        x, y = u[0]
                         #debug_write('breach - {}'.format(u))
-                        if u[0] not in self.breach_list:
-                            # make sure it wasn't my breach!!!
-                            self.breach_list.append(u[0])
+                        if y < 14:
+                            if u[0] not in self.breach_list:
+                                # make sure it wasn't my breach!!!
+                                self.breach_list.append(u[0])
                     #debug_write('breachList - {}'.format(self.breach_list))
 
                     continue

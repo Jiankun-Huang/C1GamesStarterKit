@@ -6,3 +6,19 @@ NMFF-stronger-corners:
 NMFF-SC-RE:
     NMFF-stronger-corners, plus reinforcing at >= 27 (instead of 30) as that means we've built the full wall-ish.
     Also we had only been counting filters up to now ... oops
+
+NMFF-SC2-RE:
+    Added a filter in front of the tower to better stop corner attacks
+
+NMFF-SC2-RE2:
+    If we can threaten their spawns, do it. We remove the spawn from the list when we threaten it, in case they
+    change spawn points.
+
+NMFF-2-2-no:
+    Same as above, no attacking turn zero. Will use pings if a path is safe on turn 1
+
+SKUNKWORKS
+    When we can threaten their EMP spawn, do it!
+
+I HAVE NO IDEA HOW TO WIN AN EMP WAR
+    Maybe the only way to win is to not fight? -> Avoid the threat of enemy spawn point and let DESTRUCTORs do the work??
