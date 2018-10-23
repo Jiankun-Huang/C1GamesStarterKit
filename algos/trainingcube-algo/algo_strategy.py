@@ -119,9 +119,9 @@ class AlgoStrategy(gamelib.AlgoCore):
             gamelib.debug_write('I predict that p2 will spawn an army this turn!')
         
         encryptorCount = len(self.jsonState.get('p1Units')[1])
-        if game_state.turn_number % 4 == 0:
-            if game_state.can_spawn(ENCRYPTOR, [2 + 2 * encryptorCount, 11]):
-                game_state.attempt_spawn(ENCRYPTOR, [2 + 2 * encryptorCount, 11])
+        #if game_state.turn_number % 4 == 0:
+        #    if game_state.can_spawn(ENCRYPTOR, [2 + 2 * encryptorCount, 11]):
+        #        game_state.attempt_spawn(ENCRYPTOR, [2 + 2 * encryptorCount, 11])
 
         for x in range(26):
             self.checkForRefund(game_state, [x, 13])

@@ -3,6 +3,8 @@
 *__pycache__*
 
 algos/sub*
+!algos/starter-algo-ZIPME
+
 dist/*
 !dist/.gitkeep
 1.txt

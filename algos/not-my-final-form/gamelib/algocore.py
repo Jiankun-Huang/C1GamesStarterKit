@@ -100,7 +100,7 @@ class AlgoCore(object):
                                 self.army_dict["scrambler_count"] += 1
 
                             # only care about EMP spawn coords
-                            if u[1] == 5 and u[0] not in self.enemy_spawn_coords:
+                            if u[1] == 4 and u[0] not in self.enemy_spawn_coords:
                                 self.enemy_spawn_coords.append(u[0])
                                 debug_write('SPAWN at {}'.format(u[0]))
                         #elif u[1] == 4:

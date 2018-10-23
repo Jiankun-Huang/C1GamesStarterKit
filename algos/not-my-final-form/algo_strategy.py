@@ -219,8 +219,8 @@ class AlgoStrategy(gamelib.AlgoCore):
                 self.attackForMaxDestruction(game_state)    
 
         # people like to spawn at different places on turn 0
-        # so reset to avoid future confusion
-        if game_state.turn_number == 1:
+        # so reset to avoid future confusion and don't get too wrapped up in old spawn points
+        if game_state.turn_number % 10 == 1:
             self.enemy_spawn_coords.clear()
 
         # reset the dictionary for the next analysis
@@ -246,19 +246,16 @@ class AlgoStrategy(gamelib.AlgoCore):
                     path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_RIGHT)
                     offset = 1
 
-                if len(path) >= 3:
-                    x1, y1 = path[0]
-                    x2, y2 = path[1]
-                    x3, y3 = path[2]
-                if y1 <= 16 and [[x1, 13]] not in self.reservedCoords and [[x1 + offset, 13]] not in self.reservedCoords:
-                    self.buildFirewalls(game_state, [[x1, 13]], FILTER, True)
-                    self.buildFirewalls(game_state, [[x1 + offset, 13]], DESTRUCTOR, True)
-                elif y2 <= 16 and [[x2, 13]] not in self.reservedCoords and [[x2 + offset, 13]] not in self.reservedCoords:
-                    self.buildFirewalls(game_state, [[x2, 13]], FILTER, True)
-                    self.buildFirewalls(game_state, [[x2 + offset, 13]], DESTRUCTOR, True)
-                elif y3 <= 16 and [[x3, 13]] not in self.reservedCoords and [[x3 + offset, 13]] not in self.reservedCoords:
-                    self.buildFirewalls(game_state, [[x3, 13]], FILTER, True)
-                    self.buildFirewalls(game_state, [[x3 + offset, 13]], DESTRUCTOR, True)
+                stepCount = 0
+                for step in path:
+                    stepCount += 1
+                    if stepCount > 3:
+                        return
+                    x, y = step
+                    if y <= 16 and [x, 13] not in self.reservedCoords and [x + offset, 13] not in self.reservedCoords:
+                        self.buildFirewalls(game_state, [[x, 13]], FILTER, True)
+                        self.buildFirewalls(game_state, [[x + offset, 13]], DESTRUCTOR, True)
+                        return
     
     def buildFirewalls(self, game_state, locations, unit_type, rebuildAsNeeded, maxToBuild = 100):
         numberBuilt = 0
