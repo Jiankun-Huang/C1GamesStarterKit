@@ -18,7 +18,8 @@ NMFF-2-2-no:
     Same as above, no attacking turn zero. Will use pings if a path is safe on turn 1
 
 SKUNKWORKS
-    When we can threaten their EMP spawn, do it!  Ranged limited to 4 steps. Every 10 turns, reset spawn location list
+    When we can threaten their EMP spawn, do it!  Ranged limited to 4 steps. After buliding, reset spawn location list.
+    Made some changes to hopefully avoid a crash!
 
 I HAVE NO IDEA HOW TO WIN AN EMP WAR
     Maybe the only way to win is to not fight? -> Avoid the threat of enemy spawn point and let DESTRUCTORs do the work??

@@ -218,10 +218,6 @@ class AlgoStrategy(gamelib.AlgoCore):
             else:
                 self.attackForMaxDestruction(game_state)    
 
-        # people like to spawn at different places on turn 0
-        # so reset to avoid future confusion and don't get too wrapped up in old spawn points
-        if game_state.turn_number % 10 == 1:
-            self.enemy_spawn_coords.clear()
 
         # reset the dictionary for the next analysis
         self.army_dict['total_count'] = 0
@@ -234,28 +230,27 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.submit_turn()
 
     def threatenSpawn(self, game_state):
-        # don't try and threaten spawns if the enemey spawns in too many other places
-        if len(self.enemy_spawn_coords) <= 2:
-            for spawn in self.enemy_spawn_coords:
-                path = []
-                offset = 0
-                if spawn in game_state.game_map.get_edge_locations(game_state.game_map.TOP_RIGHT):
-                    path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_LEFT)
-                    offset = -1
-                else:
-                    path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_RIGHT)
-                    offset = 1
+        for spawn in self.enemy_spawn_coords:
+            path = []
+            offset = 0
+            if spawn in game_state.game_map.get_edge_locations(game_state.game_map.TOP_RIGHT):
+                path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_LEFT)
+                offset = -1
+            else:
+                path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_RIGHT)
+                offset = 1
 
-                stepCount = 0
-                for step in path:
-                    stepCount += 1
-                    if stepCount > 3:
-                        return
-                    x, y = step
-                    if y <= 16 and [x, 13] not in self.reservedCoords and [x + offset, 13] not in self.reservedCoords:
-                        self.buildFirewalls(game_state, [[x, 13]], FILTER, True)
-                        self.buildFirewalls(game_state, [[x + offset, 13]], DESTRUCTOR, True)
-                        return
+            stepCount = 0
+            for step in path:
+                stepCount += 1
+                if stepCount > 3:
+                    return
+                x, y = step
+                if y <= 16 and [x, 13] not in self.reservedCoords and [x + offset, 13] not in self.reservedCoords:
+                    self.buildFirewalls(game_state, [[x, 13]], FILTER, True)
+                    self.buildFirewalls(game_state, [[x + offset, 13]], DESTRUCTOR, True)
+                    self.enemy_spawn_coords.clear()
+                    return
     
     def buildFirewalls(self, game_state, locations, unit_type, rebuildAsNeeded, maxToBuild = 100):
         numberBuilt = 0

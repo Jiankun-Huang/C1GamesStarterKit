@@ -132,7 +132,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                 if game_state.can_spawn(FILTER, [x, 13]):
                     game_state.attempt_spawn(FILTER, [x, 13])
 
-        spawnCoord = [4, 9]
+        spawnCoord = [3, 10]
         if game_state.turn_number == 0:
             spawnCoord = [1, 12]
         
