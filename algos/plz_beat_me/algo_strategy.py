@@ -41,24 +41,23 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.scramblerCoords = [[4,9], [8,5], [13,0], [17, 3], [21,7]]
         self.pingCoord = [3, 10]
         self.mainTowers = [
-            [3, 11],[5, 11],[8, 11],[12, 11],[15, 11],[19, 11],[23, 11]
+            [3, 11],[5, 11],[8, 11],[12, 11],[15, 11],[19, 11],[22, 11],[24, 11]
         ]
         self.filterWall = [
             [0, 13],[1, 12],[2, 11],[27, 13],[26, 12],[25, 11],
-            [24, 11],[22, 11],[21, 11],[20, 11],[18, 11],[17, 11],[16, 11],
+            [23, 11],[21, 11],[20, 11],[18, 11],[17, 11],[16, 11],
             [14, 11],[13, 11],[11, 11],[10, 11],[9, 11],[7, 11],[6, 11],
-            [3, 10],[4, 9],[5, 9],[6, 9],[7, 9],[8, 9]
+            [3, 10],[4, 9],[5, 9],[6, 9],[7, 9],[8, 9],
+            [2, 13],[25, 13],[1, 13],[26, 13]
         ]
         self.extraCornerTower = [
-            [2, 12]
+            [2, 12],[25, 12]
         ]
-        self.frontWall = [
-            [2, 13],[1, 13]
-        ]
-        for x in range(22):
+        self.frontWall = []
+        for x in range(21):
             self.frontWall.append([3 + x, 13])
         self.encryptors = [
-            [23, 9],[21, 9],[19, 9],[17, 9],[15, 9],[13, 9],[11, 9],[9, 9]
+            [23, 9],[22, 9],[21, 9]
         ]
 
     def on_game_start(self, config):
@@ -92,22 +91,9 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.buildFirewalls(game_state, self.frontWall, FILTER, False)
         self.buildFirewalls(game_state, self.encryptors, ENCRYPTOR, False)
 
-
-        # if damage dealt last turn is greater than 4 CORES worth (so that a hole gets left open) 
-        # 52->45, no dice 58->50, 59->50
-        # 59->47 SUCCESS, 58->51, success
-        if game_state.turn_number > 5:
-            copy_of_game_state = copy.deepcopy(game_state)
-            risk = self.attackForMaxPain(copy_of_game_state)
-            if risk == 0:
-                self.attackForMaxPain(game_state)
         
-        # MAX STRUCTURE DAMAGE, win on round 43
-        self.attackForMaxDestruction(game_state)
-        
-        
-        #while game_state.can_spawn(EMP, [24, 10]):
-        #    game_state.attempt_spawn(EMP, [24, 10])
+        while game_state.can_spawn(EMP, [24, 10]):
+            game_state.attempt_spawn(EMP, [24, 10])
         
 
         game_state.submit_turn()
