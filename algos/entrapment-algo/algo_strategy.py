@@ -210,9 +210,8 @@ class AlgoStrategy(gamelib.AlgoCore):
                     # we want to allow the path through our defenses, just defend it!
                     for step in path:
                         x, y = step
-                        # let's focus our towers on the first few rows of our base
-                        # TODO # Consider a 'v' shape! To minimize needless destruction from sweeping Algos
-                        if y < 16 and y > 9:
+                        # avoid the first few rows
+                        if y < 9 and y > 6:
                             if step not in self.reservedCoordsForThisTurn:
                                 self.reservedCoordsForThisTurn.append(step)
                             dictOfDefense[tuple(step)] = len(game_state.get_attackers(step, 1))

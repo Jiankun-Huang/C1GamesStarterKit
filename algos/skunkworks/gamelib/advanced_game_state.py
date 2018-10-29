@@ -35,6 +35,18 @@ class AdvancedGameState(GameState):
                     unitCount += 1
         return unitCount
 
+    def get_enemy_filter_count_for_locations(self, locations):
+        from .game_state import FILTER
+
+        unitCount = 0
+        for location in locations:
+            for unit in self.game_map[location]:
+                    if unit.player_index == 0:
+                        continue
+                    if unit.unit_type == FILTER:
+                        unitCount += 1
+        return unitCount
+
     def get_enemy_destructor_count_for_locations(self, locations):
         from .game_state import DESTRUCTOR
 

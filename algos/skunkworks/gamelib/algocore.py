@@ -29,6 +29,8 @@ class AlgoCore(object):
         self.enemy_spawns = []
         self.my_EMP_ids = []
         self.enemy_shield_dict = {}
+        self.death_dict = {}
+        self.kill_dict = {}
         
 
     def on_turn(self, game_state):
@@ -80,6 +82,23 @@ class AlgoCore(object):
                     #    if u[-2] in self.my_EMP_ids and u[3] == 4:
                     #        debug_write('MY EMP GOT ATTACKED by an EMP!')
                     #        enemyID = u[-3]
+                    for u in state['events']['death']:
+                        x, y = u[0]
+                        unitType = u[1]
+                        unitId = u[2]
+                        owner = u[3]
+                        wasRemoved = u[4]
+                        # if it's my stationary unit
+                        if owner == 1 and unitType in [0, 1, 2]:
+                            if not (x, y) in self.death_dict:
+                                self.death_dict[(x, y)] = 1
+                            else:
+                                self.death_dict[(x, y)] += 1
+                        elif owner == 2 and unitType in [3, 4, 5]:
+                            if not (x, y) in self.kill_dict:
+                                self.kill_dict[(x, y)] = 1
+                            else:
+                                self.kill_dict[(x, y)] += 1
 
                     for u in state['events']['spawn']:
                         x, y = u[0]
@@ -99,13 +118,9 @@ class AlgoCore(object):
                                 self.army_dict["total_cost"] += 1
                                 self.army_dict["scrambler_count"] += 1
 
-                            # only care about EMP spawn coords
-                            if u[1] == 4 and u[0] not in self.enemy_spawn_coords:
+                            if u[0] not in self.enemy_spawn_coords:
                                 self.enemy_spawn_coords.append(u[0])
                                 debug_write('SPAWN at {}'.format(u[0]))
-                        #elif u[1] == 4:
-                        #    # append the id
-                        #    self.my_EMP_ids.append(u[2])
 
                     for u in state['events']['breach']:
                         x, y = u[0]
