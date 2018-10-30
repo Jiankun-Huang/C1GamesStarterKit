@@ -21,12 +21,16 @@ class AlgoCore(object):
         """
         self.config = config
         self.breach_list = []
-        self.enemy_spawn_coords = []
         self.enemy_army_cost = 0
         self.enemy_ping_spawn_count = 0
         self.enemy_EMP_spawn_count = 0
+        self.enemy_ping_spawn_coords = []
+        self.enemy_EMP_spawn_coords = []
+        self.enemy_scrambler_spawn_cords = []
         self.army_dict = {'total_count': 0, 'total_cost': 0, 'ping_count': 0, 'EMP_count': 0, 'scrambler_count': 0}
         self.enemy_spawns = []
+        self.my_EMP_ids = []
+        self.enemy_shield_dict = {}
         
 
     def on_turn(self, game_state):
@@ -73,6 +77,12 @@ class AlgoCore(object):
                     """
                     If stateType == 1, this game_state_string string represents the results of an action phase
                     """
+                    
+                    #for u in state['events']['attack']:
+                    #    if u[-2] in self.my_EMP_ids and u[3] == 4:
+                    #        debug_write('MY EMP GOT ATTACKED by an EMP!')
+                    #        enemyID = u[-3]
+
                     for u in state['events']['spawn']:
                         x, y = u[0]
                         # check if it is an enemy spawn attacking unit (PING, EMP, SCRAMBLER)
@@ -81,19 +91,25 @@ class AlgoCore(object):
                             self.enemy_spawns.append(u)
                             if u[1] == 3:
                                 self.enemy_ping_spawn_count += 1
+                                if u[0] not in self.enemy_ping_spawn_coords:
+                                    self.enemy_ping_spawn_coords.append(u[0])
                                 self.army_dict["total_cost"] += 1
                                 self.army_dict["ping_count"] += 1
                             elif u[1] == 4:
                                 self.enemy_EMP_spawn_count += 1
+                                if u[0] not in self.enemy_EMP_spawn_coords:
+                                    self.enemy_EMP_spawn_coords.append(u[0])
                                 self.army_dict["total_cost"] += 3
                                 self.army_dict["EMP_count"] += 1
                             elif [1] == 5:
                                 self.army_dict["total_cost"] += 1
+                                if u[0] not in self.enemy_scrambler_spawn_cords:
+                                    self.enemy_scrambler_spawn_cords.append(u[0])
                                 self.army_dict["scrambler_count"] += 1
 
-                            if u[0] not in self.enemy_spawn_coords:
-                                self.enemy_spawn_coords.append(u[0])
-                                debug_write('SPAWN at {}'.format(u[0]))
+                        #elif u[1] == 4:
+                        #    # append the id
+                        #    self.my_EMP_ids.append(u[2])
 
                     for u in state['events']['breach']:
                         x, y = u[0]

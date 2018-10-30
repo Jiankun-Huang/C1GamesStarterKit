@@ -33,61 +33,45 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.lastEnemyHealth = 30
         self.lastEnemyArmyDict = {}
         self.troopDeploymentCoords = [13,0]
-        # maybe this magical cooridoor is suicide, but we'll see!
         self.reservedCoords = [
-            [22,10],[23,10]
+        ]
+        self.spawnBlacklist = [
         ]
         self.useRightDoor = True
         self.coresToSpendOnRebuilding = 0
         self.castleWallRow = 0
         self.turnZeroScramblerCoord = [7, 6]
         self.turnZeroEMPCoord = [20, 6]
+        self.earlyEncryptorBuilt = False
         
-        self.turnZeroTowers = [
-            [3, 11],[24, 11]
+        self.possibleRightSpawnCoords = [
         ]
-        self.filterCorners = [
-            [0, 13],[1, 12],[2, 11],[27, 13],[26, 12],[25, 11]
-        ]
-        self.leftDoorTowers = [
-            [5, 11],[20, 11],[16, 11],[12, 11],[8, 11]
-        ]
-        self.leftDoorFilters = [
-            [23, 11],[22, 11],[21, 11],[19, 11],[18, 11],[17, 11],[15, 11],[14, 11],[13, 11],
-            [11, 11],[10, 11],[9, 11],[7, 11],[6, 11]
-        ]
-        self.leftExtraCornerTower = [
-            [2, 12]
-        ]
-        self.leftRearHallway = [
-            [3, 10],[4, 9],[5, 9],[6, 9],[7, 9],[8, 9]
-        ]
-        self.leftFrontWall = []
-        for x in range(24):
-            self.leftFrontWall.append([1 + x, 13])
-        self.leftEncryptors = [
-            [21, 9],[5, 8],[9, 9],[15, 9],[11, 9],[13, 9],[17, 9],[19, 9],[23, 9]
+        self.possibleLeftSpawnCoords = [
         ]
 
-        self.rightDoorTowers = [
-            [22, 11],[7, 11],[11, 11],[15, 11],[19, 11]
+        self.leftSidePartOneCoords = [
+
         ]
-        self.rightDoorFilters = [
-            [4, 11],[5, 11],[6, 11],[8, 11],[9, 11],[10, 11],[12, 11],[13, 11],[14, 11],
-            [16, 11],[17, 11],[18, 11],[20, 11],[21, 11]
+        self.leftSidePartTwoCoords = [
+
         ]
-        self.rightRearHallway = [
-            [24, 10],[23, 9],[22, 9],[21, 9],[20, 9],[19, 9]
+        self.mainFilterSideCoords = [
+            [1, 13],[3, 13],[4, 13],[5, 13],[22, 13],[23, 13],[24, 13],[26, 13],[3, 12],[24, 12]
         ]
-        self.rightExtraCornerTower = [
-            [25, 12]
+        self.mainTowerSideCoords = [
+            [6, 11],[21, 11],[2, 13],[25, 13]
         ]
-        self.rightFrontWall = []
-        for x in range(24):
-            self.rightFrontWall.append([26 - x,13])
-        self.rightEncryptors = [
-            [22, 8],[6, 9],[18, 9],[12, 9],[16, 9],[14, 9],[10, 9],[8, 9],[4, 9]
+        self.middleTowerCoords = [
+            [12, 10], [15, 10]
         ]
+        self.leftEncryptorCoords = [
+
+        ]
+        self.rightEncryptorCoords = [
+
+        ]
+
+        
 
     def on_game_start(self, config):
         """ 
@@ -118,26 +102,87 @@ class AlgoStrategy(gamelib.AlgoCore):
         if 'total_cost' in self.lastEnemyArmyDict and game_state.get_resource(game_state.BITS, 1) >= self.lastEnemyArmyDict['total_cost']:
             gamelib.debug_write('I predict that p2 will spawn an army this turn!')
         
-        encryptorCount = len(self.jsonState.get('p1Units')[1])
-        #if game_state.turn_number % 4 == 0:
-        #    if game_state.can_spawn(ENCRYPTOR, [2 + 2 * encryptorCount, 11]):
-        #        game_state.attempt_spawn(ENCRYPTOR, [2 + 2 * encryptorCount, 11])
+        shouldRebuild = game_state.turn_number > 3
+        shouldRebuildWall = p1UnitCount >= 27 #only reinforce if the full wall is in place
+        needsStrongerCorners = game_state.turn_number > 3      
+        towersToBuild = 1   
+        self.coresToSpendOnRebuilding = 4
 
-        for x in range(26):
-            self.checkForRefund(game_state, [x, 13])
-            if x % 3 == 0:
-                if game_state.can_spawn(DESTRUCTOR, [x, 13]):
-                    game_state.attempt_spawn(DESTRUCTOR, [x, 13])
-            else:
-                if game_state.can_spawn(FILTER, [x, 13]):
-                    game_state.attempt_spawn(FILTER, [x, 13])
-
-        spawnCoord = [3, 10]
         if game_state.turn_number == 0:
-            spawnCoord = [1, 12]
-        
-        while game_state.can_spawn(EMP, spawnCoord):
-            game_state.attempt_spawn(EMP, spawnCoord)
+            self.buildFirewalls(game_state, [[1, 13], [3, 13], [24, 13], [26, 13]], FILTER, False)
+            self.buildFirewalls(game_state, [[2, 13], [6, 11], [21, 11], [25, 13]], DESTRUCTOR, False)
+            game_state.attempt_spawn(SCRAMBLER, [22, 8])
+            game_state.attempt_spawn(SCRAMBLER, [5, 8])
+        elif game_state.turn_number == 1:
+            if game_state.get_enemy_destructor_count_for_locations([[ 0, 14],[ 1, 14],[ 2, 14],[ 3, 14],[ 4, 14],[ 5, 14]]) > 0:
+                self.buildFirewalls(game_state,[[3, 11],[5, 11]], FILTER, False)
+                self.buildFirewalls(game_state,[[4, 11]], ENCRYPTOR, False)
+                self.possibleLeftSpawnCoords = [[3, 10]]
+            elif game_state.get_enemy_destructor_count_for_locations([[ 1, 15],[ 2, 15],[ 3, 15],[ 4, 15],[ 5, 15]]) > 0:
+                self.buildFirewalls(game_state,[[3, 12],[5, 12]], FILTER, False)
+                self.buildFirewalls(game_state,[[4, 12]], ENCRYPTOR, False)
+                self.possibleLeftSpawnCoords = [[2, 11]]
+            else:
+                self.buildFirewalls(game_state,[[4, 13],[5,13]], FILTER, False)
+                self.buildFirewalls(game_state,[[4, 11]], ENCRYPTOR, False)
+                self.possibleLeftSpawnCoords = [[1, 12]]
+
+            if game_state.get_enemy_destructor_count_for_locations([[ 22, 14],[ 23, 14],[ 24, 14],[ 25, 14],[ 26, 14],[ 27, 14]]) > 0:
+                self.buildFirewalls(game_state,[[22, 11],[24, 11]], FILTER, False)
+                self.buildFirewalls(game_state,[[23, 11]], ENCRYPTOR, False)
+                self.possibleRightSpawnCoords = [[24, 10]]
+            elif game_state.get_enemy_destructor_count_for_locations([[ 22, 15],[ 23, 15],[ 24, 15],[ 25, 15],[ 26, 15]]) > 0:
+                self.buildFirewalls(game_state,[[22, 12],[24, 12]], FILTER, False)
+                self.buildFirewalls(game_state,[[23, 12]], ENCRYPTOR, False)
+                self.possibleRightSpawnCoords = [[25, 11]]
+            else:
+                self.buildFirewalls(game_state,[[22, 13],[23,13]], FILTER, False)
+                self.buildFirewalls(game_state,[[23, 11]], ENCRYPTOR, False)
+                self.possibleRightSpawnCoords = [[26, 12]]
+
+            game_state.attempt_spawn(EMP, self.possibleLeftSpawnCoords[0])
+            game_state.attempt_spawn(EMP, self.possibleRightSpawnCoords[0])
+        else:
+            game_state.attempt_spawn(EMP, self.possibleLeftSpawnCoords[0])
+            game_state.attempt_spawn(EMP, self.possibleRightSpawnCoords[0])
+
+
+            # EMPs will be neutralized by my own encrypted EMPs.  Check if I need more encryptors
+            if len(self.enemy_EMP_spawn_coords) > 0:
+                leftEMPSpawnCoords = []
+                rightEMPSpawnCoords = []
+                for c in self.enemy_EMP_spawn_coords:
+                    x, y = c
+                    if x < 14:
+                        leftEMPSpawnCoords.append(c)
+                    else:
+                        rightEMPSpawnCoords.append(c)
+                leftEncryptorStrength = 0
+                rightEncryptorStrenth = 0
+                for c in self.jsonState.get('p2Units')[1]:
+                    x = c[0]
+                    if x < 14:
+                        leftEncryptorStrength += 1
+                    else:
+                        rightEncryptorStrenth += 1
+                enemyEMPsAffordable = game_state.get_resource(game_state.BITS, 1) // 3
+
+                # we want to build EMP army size + encryptor strength in encryptors
+                if len(leftEMPSpawnCoords) > 0:
+                    if game_state.count_units_in_locations(self.leftEncryptorCoords) < enemyEMPsAffordable + leftEncryptorStrength:
+                        self.buildFirewalls(game_state, self.leftEncryptorCoords, ENCRYPTOR, False, 1)
+                if len(rightEMPSpawnCoords) > 0:
+                    if game_state.count_units_in_locations(self.rightEncryptorCoords) < enemyEMPsAffordable + rightEncryptorStrenth:
+                        self.buildFirewalls(game_state, self.rightEncryptorCoords, ENCRYPTOR, False, 1)
+
+
+            # towers will be the way to neutralize pings
+            if len(self.enemy_ping_spawn_coords) > 0:
+                self.buildFirewalls(game_state, self.middleTowerCoords, DESTRUCTOR, False)
+
+            # towers will be the way to neutralize scramblers
+            if len(self.enemy_scrambler_spawn_cords) > 0:
+                self.buildFirewalls(game_state, self.middleTowerCoords, DESTRUCTOR, False)
 
         # reset the dictionary for the next analysis
         self.army_dict['total_count'] = 0
@@ -146,35 +191,31 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.army_dict['EMP_count'] = 0
         self.army_dict['scrambler_count'] = 0
         self.enemy_spawns.clear()
+        self.my_EMP_ids.clear()
         game_state.submit_turn()
 
-    def reinforceDestructors(self, game_state, locations, rebuildAsNeeded):
-        for location in locations:
-            x, y = location
-            oneForward = [x, y + 1]
-            if rebuildAsNeeded:
-                self.checkForRefund(game_state, oneForward)
-            if oneForward not in self.reservedCoords:
-                if game_state.can_spawn(FILTER, oneForward):
-                    game_state.attempt_spawn(FILTER, oneForward)
-        
-        for location in locations:
-            x, y = location
-            oneRight = [x + 1, y]
-            if rebuildAsNeeded:
-                self.checkForRefund(game_state, oneRight)
-            if oneRight not in self.reservedCoords:
-                if game_state.can_spawn(FILTER, oneRight):
-                    game_state.attempt_spawn(FILTER, oneRight)
+    def threatenSpawn(self, game_state):
+        for spawn in self.enemy_EMP_spawn_coords:
+            path = []
+            offset = 0
+            if spawn in game_state.game_map.get_edge_locations(game_state.game_map.TOP_RIGHT):
+                path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_LEFT)
+                offset = -1
+            else:
+                path = game_state.find_path_to_edge(spawn, game_state.game_map.BOTTOM_RIGHT)
+                offset = 1
 
-        for location in locations:
-            x, y = location
-            oneLeft = [x - 1, y]
-            if rebuildAsNeeded:
-                self.checkForRefund(game_state, oneLeft)
-            if oneLeft not in self.reservedCoords:
-                if game_state.can_spawn(FILTER, oneLeft):
-                    game_state.attempt_spawn(FILTER, oneLeft)
+            stepCount = 0
+            for step in path:
+                stepCount += 1
+                if stepCount > 3:
+                    return
+                x, y = step
+                if y <= 16 and [x, 13] not in self.reservedCoords and [x + offset, 13] not in self.reservedCoords:
+                    self.buildFirewalls(game_state, [[x, 13]], FILTER, True)
+                    self.buildFirewalls(game_state, [[x + offset, 13]], DESTRUCTOR, True)
+                    self.enemy_EMP_spawn_coords.clear()
+                    return
     
     def buildFirewalls(self, game_state, locations, unit_type, rebuildAsNeeded, maxToBuild = 100):
         numberBuilt = 0
@@ -186,7 +227,8 @@ class AlgoStrategy(gamelib.AlgoCore):
                     game_state.attempt_spawn(unit_type, location)
                     numberBuilt += 1
                     if numberBuilt >= maxToBuild:
-                        return
+                        return numberBuilt
+        return numberBuilt
 
     def checkForRefund(self, game_state, location):
         x, y = location
@@ -216,7 +258,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT):
             #if game_state.can_spawn(PING, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
-            if game_state.can_spawn(PING, startLocation):
+            if game_state.can_spawn(PING, startLocation) and startLocation not in self.spawnBlacklist:
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_RIGHT)
                 lastX, lastY = path[-1]
                 # need to make it at least to the edge of our map to be considered!
@@ -234,7 +276,7 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT):
             #if game_state.can_spawn(PING, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
-            if game_state.can_spawn(PING, startLocation):
+            if game_state.can_spawn(PING, startLocation) and startLocation not in self.spawnBlacklist:
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_LEFT)
                 lastX, lastY = path[-1]
                 # need to make it at least to the edge of our map to be considered!
@@ -267,7 +309,7 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         # don't want to start in range of a destructor
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT):
-            if game_state.can_spawn(EMP, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            if game_state.can_spawn(EMP, startLocation) and startLocation not in self.spawnBlacklist and len(game_state.get_attackers(startLocation, 0)) == 0:
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_RIGHT)
                 pathValue = game_state.get_target_count_for_EMP_locations(path)
                 if pathValue > bestPathValue:
@@ -275,7 +317,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                     deployLocation = startLocation
                     targetEdge = game_state.game_map.TOP_RIGHT
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT):
-            if game_state.can_spawn(EMP, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            if game_state.can_spawn(EMP, startLocation) and startLocation not in self.spawnBlacklist and len(game_state.get_attackers(startLocation, 0)) == 0:
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_LEFT)
                 pathValue = game_state.get_target_count_for_EMP_locations(path)
                 if pathValue > bestPathValue:
@@ -294,7 +336,7 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         # don't want to start in range of a destructor
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT):
-            if game_state.can_spawn(EMP, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            if game_state.can_spawn(EMP, startLocation) and startLocation not in self.spawnBlacklist and len(game_state.get_attackers(startLocation, 0)) == 0:
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_RIGHT)
                 #pathValue = game_state.get_target_count_for_EMP_locations(path) - game_state.get_attacker_count_for_locations(path)
                 pathValue = game_state.get_free_target_count_for_EMP_locations(path)
@@ -303,7 +345,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                     deployLocation = startLocation
                     targetEdge = game_state.game_map.TOP_RIGHT
         for startLocation in game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT):
-            if game_state.can_spawn(EMP, startLocation) and len(game_state.get_attackers(startLocation, 0)) == 0:
+            if game_state.can_spawn(EMP, startLocation) and startLocation not in self.spawnBlacklist and len(game_state.get_attackers(startLocation, 0)) == 0:
                 path = game_state.find_path_to_edge(startLocation, game_state.game_map.TOP_LEFT)
                 #pathValue = game_state.get_target_count_for_EMP_locations(path) - game_state.get_attacker_count_for_locations(path)
                 pathValue = game_state.get_free_target_count_for_EMP_locations(path)
